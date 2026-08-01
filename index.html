@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
+  <title>Pro · Calculator + Smart To‑Do</title>
+  <style>
+    /* ----- CSS Variables (light pink & white) ----- */
+    :root {
+      --bg-primary: #fff5f8;
+      --bg-card: rgba(255, 255, 255, 0.65);
+      --bg-glass: rgba(255, 255, 255, 0.5);
+      --text-primary: #2d1b2a;
+      --text-secondary: #6b4a5e;
+      --shadow: 0 20px 40px -12px rgba(180, 80, 120, 0.15);
+      --border-glass: 1px solid rgba(255, 255, 255, 0.7);
+      --accent: #f5a3c7;
+      --accent-dark: #d47b9f;
+      --radius: 28px;
+      --transition: 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    /* ----- Reset & Base ----- */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+      line-height: 1.5;
+    }
+
+    /* ----- Animated background (moving blobs) ----- */
+    .bg-blobs {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(90px);
+      opacity: 0.35;
+      animation: floatBlob 22s infinite alternate ease-in-out;
+    }
+    .blob:nth-child(1) {
+      width: 45vw;
+      height: 45vw;
+      background: #fcd5e3;
+      top: -15%;
+      left: -10%;
+      animation-duration: 24s;
+    }
+    .blob:nth-child(2) {
+      width: 55vw;
+      height: 55vw;
+      background: #fce4ec;
+      bottom: -20%;
+      right: -15%;
+      animation-duration: 28s;
+      animation-delay: -5s;
+    }
+    .blob:nth-child(3) {
+      width: 35vw;
+      height: 35vw;
+      background: #ffe8ef;
+      top: 35%;
+      left: 30%;
+      animation-duration: 20s;
+      animation-delay: -10s;
+      opacity: 0.25;
+    }
+    @keyframes floatBlob {
+      0% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(70px, -50px) scale(1.15); }
+      66% { transform: translate(-40px, 60px) scale(0.85); }
+      100% { transform: translate(50px, -30px) scale(1.05); }
+    }
+
+    /* ----- Loader ----- */
+    #loader {
+      position: fixed;
+      inset: 0;
+      background: var(--bg-primary);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1.5rem;
+      transition: opacity 0.7s ease, visibility 0.7s;
+    }
+    #loader.hide {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+    .loader-logo {
+      font-size: 3.8rem;
+      font-weight: 600;
+      background: linear-gradient(135deg, #f5a3c7, #d47b9f);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: pulseGlow 2s infinite;
+    }
+    .loader-bar {
+      width: 200px;
+      height: 4px;
+      background: rgba(212, 123, 159, 0.2);
+      border-radius: 20px;
+      overflow: hidden;
+    }
+    .loader-bar-inner {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #f5a3c7, #d47b9f);
+      border-radius: 20px;
+      animation: loadProgress 1.8s ease forwards;
+    }
+    @keyframes loadProgress {
+      0% { width: 0%; }
+      100% { width: 100%; }
+    }
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 0.8; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.02); }
+    }
+
+    /* ----- App wrapper ----- */
+    .app-wrap {
+      position: relative;
+      z-index: 2;
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 1.2rem 1.8rem 2rem;
+    }
+
+    /* ----- Navbar (sticky) ----- */
+    .navbar {
+      position: sticky;
+      top: 0.8rem;
+      z-index: 100;
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      background: var(--bg-glass);
+      border: var(--border-glass);
+      border-radius: 60px;
+      padding: 0.7rem 1.8rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.6rem 1rem;
+      box-shadow: 0 12px 30px -8px rgba(180, 80, 120, 0.08);
+      transition: background 0.3s;
+    }
+    .nav-logo {
+      font-weight: 600;
+      font-size: 1.3rem;
+      letter-spacing: -0.3px;
+      background: linear-gradient(135deg, #f5a3c7, #d47b9f);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .nav-links {
+      display: flex;
+      gap: 0.4rem 1.2rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .nav-links button {
+      background: none;
+      border: none;
+      font-weight: 500;
+      font-size: 0.9rem;
+      padding: 0.3rem 0.6rem;
+      border-radius: 40px;
+      transition: 0.2s;
+      cursor: pointer;
+      color: var(--text-secondary);
+      font-family: inherit;
+    }
+    .nav-links button:hover {
+      background: rgba(245, 163, 199, 0.2);
+      color: var(--text-primary);
+    }
+    .nav-links button.active {
+      background: rgba(245, 163, 199, 0.25);
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    /* ----- Hero Section ----- */
+    .hero {
+      margin: 3.5rem 0 2.5rem;
+      text-align: center;
+      animation: fadeUp 1s ease;
+    }
+    .hero h1 {
+      font-size: clamp(2.2rem, 7vw, 3.8rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #f5a3c7, #d47b9f);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: floatText 6s infinite alternate ease-in-out;
+    }
+    .hero p {
+      font-size: 1.2rem;
+      color: var(--text-secondary);
+      margin-top: 0.5rem;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .hero-cta {
+      margin-top: 1.8rem;
+      display: inline-block;
+      background: linear-gradient(135deg, #f5a3c7, #d47b9f);
+      border: none;
+      padding: 0.8rem 2.8rem;
+      border-radius: 60px;
+      font-weight: 600;
+      color: #fff;
+      box-shadow: 0 8px 24px rgba(212, 123, 159, 0.35);
+      transition: 0.25s;
+      cursor: pointer;
+      font-size: 1rem;
+      backdrop-filter: blur(4px);
+    }
+    .hero-cta:hover {
+      transform: scale(1.05);
+      box-shadow: 0 12px 32px rgba(212, 123, 159, 0.5);
+    }
+    @keyframes floatText {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-8px); }
+    }
+    @keyframes fadeUp {
+      0% { opacity: 0; transform: translateY(30px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ----- Tool Selection (after hero) ----- */
+    .tool-select {
+      display: none;
+      margin: 2rem auto 2.5rem;
+      text-align: center;
+      animation: fadeUp 0.6s ease;
+    }
+    .tool-select.show {
+      display: block;
+    }
+    .tool-select h2 {
+      font-size: 1.6rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 1.8rem;
+    }
+    .tool-select-buttons {
+      display: flex;
+      gap: 1.5rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .tool-select-buttons button {
+      background: var(--bg-card);
+      backdrop-filter: blur(8px);
+      border: var(--border-glass);
+      border-radius: 24px;
+      padding: 1.2rem 2.8rem;
+      font-size: 1.2rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: 0.25s;
+      box-shadow: 0 8px 24px rgba(180, 80, 120, 0.06);
+      font-family: inherit;
+      min-width: 180px;
+    }
+    .tool-select-buttons button:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 16px 32px rgba(212, 123, 159, 0.15);
+      background: rgba(255, 255, 255, 0.8);
+    }
+    .tool-select-buttons button .icon {
+      display: block;
+      font-size: 2.4rem;
+      margin-bottom: 0.4rem;
+    }
+
+    /* ----- Single Tool View (Calculator OR To-Do) ----- */
+    .single-tool {
+      display: none;
+      max-width: 700px;
+      margin: 2rem auto 2.8rem;
+      animation: fadeUp 0.6s ease;
+    }
+    .single-tool.active {
+      display: block;
+    }
+    .single-tool .glass-card {
+      max-width: 100%;
+    }
+    .back-btn {
+      display: inline-block;
+      margin-bottom: 1rem;
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      cursor: pointer;
+      padding: 0.4rem 0.8rem;
+      border-radius: 40px;
+      transition: 0.2s;
+      font-family: inherit;
+    }
+    .back-btn:hover {
+      background: rgba(245, 163, 199, 0.15);
+      color: var(--text-primary);
+    }
+
+    /* ----- Shared Glass Card ----- */
+    .glass-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: var(--border-glass);
+      border-radius: var(--radius);
+      padding: 1.8rem 1.5rem 2rem;
+      box-shadow: var(--shadow);
+      transition: transform 0.25s, box-shadow 0.3s;
+    }
+    .glass-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 28px 48px -16px rgba(180, 80, 120, 0.15);
+    }
+    .card-title {
+      font-weight: 600;
+      font-size: 1.2rem;
+      margin-bottom: 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--text-primary);
+    }
+
+    /* ----- Calculator ----- */
+    .calc-display {
+      background: rgba(255, 255, 255, 0.5);
+      backdrop-filter: blur(4px);
+      border-radius: 20px;
+      padding: 0.8rem 1.2rem;
+      margin-bottom: 1.4rem;
+      text-align: right;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      min-height: 80px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+    .calc-expr {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      min-height: 1.6rem;
+    }
+    .calc-result {
+      font-size: 2.6rem;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      transition: 0.15s;
+    }
+    .calc-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.6rem;
+    }
+    .calc-grid button {
+      background: rgba(255, 255, 255, 0.5);
+      backdrop-filter: blur(4px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 16px;
+      padding: 0.9rem 0.2rem;
+      font-size: 1.2rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: 0.15s;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+    }
+    .calc-grid button:hover {
+      background: rgba(245, 163, 199, 0.2);
+      transform: scale(0.96);
+    }
+    .calc-grid button:active {
+      transform: scale(0.92);
+    }
+    .calc-grid .op {
+      background: rgba(245, 163, 199, 0.2);
+    }
+    .calc-grid .eq {
+      background: linear-gradient(135deg, #f5a3c7, #d47b9f);
+      color: #fff;
+      font-weight: 600;
+    }
+    .calc-grid .clear {
+      background: rgba(255, 200, 200, 0.25);
+      color: #b35a5a;
+    }
+
+    /* ----- To-Do ----- */
+    .todo-input-row {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.2rem;
+      flex-wrap: wrap;
+    }
+    .todo-input-row input {
+      flex: 1;
+      padding: 0.7rem 1rem;
+      border-radius: 40px;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      background: rgba(255, 255, 255, 0.3);
+      backdrop-filter: blur(4px);
+      font-size: 0.95rem;
+      color: var(--text-primary);
+      outline: none;
+      min-width: 140px;
+    }
+    .todo-input-row input::placeholder {
+      color: var(--text-secondary);
+      opacity: 0.6;
+    }
+    .todo-input-row button {
+      background: linear-gradient(135deg, #f5a3c7, #d47b9f);
+      border: none;
+      border-radius: 40px;
+      padding: 0 1.6rem;
+      font-weight: 500;
+      color: #fff;
+      cursor: pointer;
+      transition: 0.2s;
+      white-space: nowrap;
+    }
+    .todo-input-row button:hover {
+      transform: scale(1.03);
+    }
+
+    .todo-filters {
+      display: flex;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+    .todo-filters button {
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 0.2rem 1rem;
+      border-radius: 40px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .todo-filters button.active {
+      background: rgba(245, 163, 199, 0.2);
+      border-color: #f5a3c7;
+      color: var(--text-primary);
+    }
+    .todo-list {
+      list-style: none;
+      max-height: 280px;
+      overflow-y: auto;
+      padding-right: 0.2rem;
+    }
+    .todo-list li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.5rem 0.3rem 0.5rem 0.8rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+      gap: 0.4rem;
+      transition: 0.15s;
+      border-radius: 12px;
+    }
+    .todo-list li:hover {
+      background: rgba(245, 163, 199, 0.06);
+    }
+    .todo-text {
+      flex: 1;
+      word-break: break-word;
+      font-size: 0.95rem;
+    }
+    .todo-text.done {
+      text-decoration: line-through;
+      opacity: 0.55;
+    }
+    .todo-actions button {
+      background: transparent;
+      border: none;
+      font-size: 0.8rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 30px;
+      cursor: pointer;
+      transition: 0.15s;
+      color: var(--text-secondary);
+    }
+    .todo-actions .toggle-btn {
+      background: rgba(245, 163, 199, 0.12);
+    }
+    .todo-actions .delete-btn {
+      background: rgba(255, 150, 150, 0.15);
+      color: #b35a5a;
+    }
+    .todo-actions button:hover {
+      transform: scale(1.1);
+    }
+    .todo-stats {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-top: 0.8rem;
+      flex-wrap: wrap;
+    }
+
+    /* ----- Toast / Confetti ----- */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      padding: 0.8rem 1.6rem;
+      border-radius: 60px;
+      border: var(--border-glass);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+      font-weight: 500;
+      transform: translateY(80px);
+      opacity: 0;
+      transition: 0.4s ease;
+      z-index: 200;
+    }
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    .confetti-canvas {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 300;
+    }
+
+    /* ----- Footer ----- */
+    .footer {
+      margin-top: 3rem;
+      padding: 1.2rem 0 0.6rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+    }
+
+    /* ----- Responsive ----- */
+    @media (max-width: 600px) {
+      .app-wrap { padding: 0.8rem 1rem; }
+      .navbar { padding: 0.5rem 1rem; flex-direction: column; align-items: stretch; }
+      .nav-links { justify-content: center; }
+      .hero h1 { font-size: 1.8rem; }
+      .tool-select-buttons button { min-width: 140px; padding: 1rem 1.5rem; font-size: 1rem; }
+      .calc-grid button { padding: 0.7rem 0.1rem; font-size: 1rem; }
+      .single-tool { max-width: 100%; }
+    }
+    @media (max-width: 400px) {
+      .tool-select-buttons { flex-direction: column; align-items: center; }
+      .tool-select-buttons button { width: 100%; max-width: 280px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- LOADER -->
+  <div id="loader">
+    <div class="loader-logo">✦ Pro·Kit</div>
+    <div class="loader-bar"><div class="loader-bar-inner"></div></div>
+  </div>
+
+  <!-- Animated Background Blobs -->
+  <div class="bg-blobs"><div class="blob"></div><div class="blob"></div><div class="blob"></div></div>
+
+  <!-- MAIN APP -->
+  <div class="app-wrap">
+
+    <!-- Navbar -->
+    <nav class="navbar" id="navbar">
+      <span class="nav-logo">✦ Pro·Kit</span>
+      <div class="nav-links">
+        <button id="navHome" class="active">Home</button>
+        <button id="navTools">Tools</button>
+      </div>
+    </nav>
+
+    <!-- Hero Section (always visible initially) -->
+    <section class="hero" id="heroSection">
+      <h1>Week 4 JavaScript Internship Project</h1>
+      <p>Interactive Calculator and Smart To‑Do Application</p>
+      <button class="hero-cta" id="exploreBtn">Explore Tools</button>
+    </section>
+
+    <!-- Tool Selection (shown after Explore) -->
+    <div class="tool-select" id="toolSelect">
+      <h2>✨ Choose your tool</h2>
+      <div class="tool-select-buttons">
+        <button id="goCalculator">
+          <span class="icon">🧮</span>
+          Calculator
+        </button>
+        <button id="goTodo">
+          <span class="icon">📋</span>
+          Smart To‑Do
+        </button>
+      </div>
+    </div>
+
+    <!-- Single Tool Views -->
+    <!-- Calculator Only -->
+    <div class="single-tool" id="calculatorView">
+      <button class="back-btn" id="backFromCalc">← Back to tools</button>
+      <div class="glass-card">
+        <div class="card-title">🧮 Calculator</div>
+        <div class="calc-display">
+          <div class="calc-expr" id="calcExpr"></div>
+          <div class="calc-result" id="calcResult">0</div>
+        </div>
+        <div class="calc-grid" id="calcGrid">
+          <button class="clear" data-action="clear">AC</button>
+          <button class="op" data-action="operator">%</button>
+          <button class="op" data-action="operator">÷</button>
+          <button class="op" data-action="operator">×</button>
+          <button data-action="number">7</button><button data-action="number">8</button><button data-action="number">9</button>
+          <button class="op" data-action="operator">−</button>
+          <button data-action="number">4</button><button data-action="number">5</button><button data-action="number">6</button>
+          <button class="op" data-action="operator">+</button>
+          <button data-action="number">1</button><button data-action="number">2</button><button data-action="number">3</button>
+          <button class="eq" data-action="calculate">=</button>
+          <button data-action="number">0</button><button data-action="number">.</button>
+          <button class="op" data-action="backspace">⌫</button>
+          <button class="eq" data-action="calculate">=</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- To-Do Only -->
+    <div class="single-tool" id="todoView">
+      <button class="back-btn" id="backFromTodo">← Back to tools</button>
+      <div class="glass-card">
+        <div class="card-title">📋 Smart To‑Do</div>
+        <div class="todo-input-row">
+          <input type="text" id="todoInput" placeholder="Write a task …" />
+          <button id="addTodoBtn">Add</button>
+        </div>
+        <div class="todo-filters">
+          <button class="active" data-filter="all">All</button>
+          <button data-filter="pending">Pending</button>
+          <button data-filter="completed">Completed</button>
+        </div>
+        <ul class="todo-list" id="todoList"></ul>
+        <div class="todo-stats">
+          <span id="todoCount">0 tasks</span>
+          <span id="todoProgress">0% done</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>Created for Web Development Internship · Week 4 · JavaScript Project<br>Made with ❤️</p>
+    </footer>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <!-- Confetti canvas -->
+  <canvas class="confetti-canvas" id="confettiCanvas"></canvas>
+
+  <script>
+    (function() {
+      // ----- LOADER -----
+      window.addEventListener('load', () => {
+        setTimeout(() => document.getElementById('loader').classList.add('hide'), 2000);
+      });
+
+      // ----- DOM refs -----
+      const heroSection = document.getElementById('heroSection');
+      const toolSelect = document.getElementById('toolSelect');
+      const calculatorView = document.getElementById('calculatorView');
+      const todoView = document.getElementById('todoView');
+      const exploreBtn = document.getElementById('exploreBtn');
+      const navHome = document.getElementById('navHome');
+      const navTools = document.getElementById('navTools');
+      const goCalc = document.getElementById('goCalculator');
+      const goTodo = document.getElementById('goTodo');
+      const backFromCalc = document.getElementById('backFromCalc');
+      const backFromTodo = document.getElementById('backFromTodo');
+
+      // ----- Navigation logic -----
+      function showHome() {
+        heroSection.style.display = 'block';
+        toolSelect.classList.remove('show');
+        calculatorView.classList.remove('active');
+        todoView.classList.remove('active');
+        navHome.classList.add('active');
+        navTools.classList.remove('active');
+      }
+
+      function showToolSelect() {
+        heroSection.style.display = 'none';
+        toolSelect.classList.add('show');
+        calculatorView.classList.remove('active');
+        todoView.classList.remove('active');
+        navHome.classList.remove('active');
+        navTools.classList.add('active');
+      }
+
+      function showCalculator() {
+        heroSection.style.display = 'none';
+        toolSelect.classList.remove('show');
+        calculatorView.classList.add('active');
+        todoView.classList.remove('active');
+        navHome.classList.remove('active');
+        navTools.classList.add('active');
+      }
+
+      function showTodo() {
+        heroSection.style.display = 'none';
+        toolSelect.classList.remove('show');
+        todoView.classList.add('active');
+        calculatorView.classList.remove('active');
+        navHome.classList.remove('active');
+        navTools.classList.add('active');
+      }
+
+      // Event listeners
+      exploreBtn.addEventListener('click', showToolSelect);
+      navHome.addEventListener('click', showHome);
+      navTools.addEventListener('click', () => {
+        if (calculatorView.classList.contains('active') || todoView.classList.contains('active')) {
+          showToolSelect();
+        } else {
+          showToolSelect();
+        }
+      });
+
+      goCalc.addEventListener('click', showCalculator);
+      goTodo.addEventListener('click', showTodo);
+      backFromCalc.addEventListener('click', showToolSelect);
+      backFromTodo.addEventListener('click', showToolSelect);
+
+      // ----- CALCULATOR -----
+      let currentInput = '0', previousInput = '', operator = null, resetDisplay = false;
+      const calcResult = document.getElementById('calcResult');
+      const calcExpr = document.getElementById('calcExpr');
+
+      function updateCalcDisplay() {
+        let disp = currentInput;
+        if (disp === '' || disp === '-') disp = '0';
+        if (disp.length > 14) disp = disp.slice(0, 14) + '…';
+        calcResult.textContent = disp;
+        let expr = '';
+        if (previousInput && operator) expr = `${previousInput} ${operator} `;
+        calcExpr.textContent = expr;
+      }
+
+      function handleNumber(num) {
+        if (resetDisplay) { currentInput = num; resetDisplay = false; }
+        else {
+          if (currentInput === '0' && num !== '.') currentInput = num;
+          else {
+            if (num === '.' && currentInput.includes('.')) return;
+            currentInput += num;
+          }
+        }
+        updateCalcDisplay();
+      }
+
+      function handleOperator(op) {
+        const cur = parseFloat(currentInput);
+        if (operator && !resetDisplay) {
+          const prev = parseFloat(previousInput);
+          let result;
+          switch (operator) {
+            case '+': result = prev + cur; break;
+            case '−': result = prev - cur; break;
+            case '×': result = prev * cur; break;
+            case '÷': result = prev / cur; break;
+            case '%': result = prev % cur; break;
+            default: result = cur;
+          }
+          currentInput = String(result);
+          operator = op;
+          previousInput = currentInput;
+          resetDisplay = true;
+          updateCalcDisplay();
+          return;
+        }
+        if (currentInput !== '') {
+          previousInput = currentInput;
+          operator = op;
+          resetDisplay = true;
+          updateCalcDisplay();
+        }
+      }
+
+      function handleCalculate() {
+        if (!operator || resetDisplay) {
+          if (currentInput === '') currentInput = '0';
+          updateCalcDisplay();
+          return;
+        }
+        const prev = parseFloat(previousInput);
+        const cur = parseFloat(currentInput);
+        if (isNaN(prev) || isNaN(cur)) { currentInput = 'Error'; operator = null; previousInput = ''; updateCalcDisplay(); return; }
+        let result;
+        switch (operator) {
+          case '+': result = prev + cur; break;
+          case '−': result = prev - cur; break;
+          case '×': result = prev * cur; break;
+          case '÷': result = prev / cur; break;
+          case '%': result = prev % cur; break;
+          default: result = cur;
+        }
+        currentInput = isFinite(result) ? String(result) : 'Error';
+        operator = null; previousInput = ''; resetDisplay = true;
+        updateCalcDisplay();
+      }
+
+      function clearAll() { currentInput = '0'; previousInput = ''; operator = null; resetDisplay = false; updateCalcDisplay(); }
+      function backspace() { if (!resetDisplay && currentInput.length > 1) { currentInput = currentInput.slice(0, -1); } else { currentInput = '0'; } updateCalcDisplay(); }
+
+      document.getElementById('calcGrid').addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        const action = btn.dataset.action;
+        if (action === 'number') handleNumber(btn.textContent);
+        else if (action === 'operator') handleOperator(btn.textContent);
+        else if (action === 'calculate') handleCalculate();
+        else if (action === 'clear') clearAll();
+        else if (action === 'backspace') backspace();
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (!document.getElementById('calculatorView').contains(e.target)) return;
+        const k = e.key;
+        if (k >= '0' && k <= '9') { e.preventDefault(); handleNumber(k); }
+        else if (k === '.') { e.preventDefault(); handleNumber('.'); }
+        else if (k === '+') { e.preventDefault(); handleOperator('+'); }
+        else if (k === '-') { e.preventDefault(); handleOperator('−'); }
+        else if (k === '*') { e.preventDefault(); handleOperator('×'); }
+        else if (k === '/') { e.preventDefault(); handleOperator('÷'); }
+        else if (k === '%') { e.preventDefault(); handleOperator('%'); }
+        else if (k === 'Enter' || k === '=') { e.preventDefault(); handleCalculate(); }
+        else if (k === 'Backspace') { e.preventDefault(); backspace(); }
+        else if (k === 'Escape') { e.preventDefault(); clearAll(); }
+      });
+
+      // ----- TO-DO -----
+      let todos = JSON.parse(localStorage.getItem('todos')) || [];
+      let filter = 'all';
+      const todoList = document.getElementById('todoList');
+      const todoCount = document.getElementById('todoCount');
+      const todoProgress = document.getElementById('todoProgress');
+      const todoInput = document.getElementById('todoInput');
+
+      function saveTodos() { localStorage.setItem('todos', JSON.stringify(todos)); }
+
+      function renderTodos() {
+        let filtered = todos;
+        if (filter === 'pending') filtered = todos.filter(t => !t.done);
+        else if (filter === 'completed') filtered = todos.filter(t => t.done);
+
+        todoList.innerHTML = '';
+        if (filtered.length === 0) {
+          todoList.innerHTML = '<li style="opacity:0.6;justify-content:center;padding:1.2rem 0;">✨ no tasks</li>';
+        } else {
+          filtered.forEach((t) => {
+            const li = document.createElement('li');
+            const span = document.createElement('span');
+            span.className = 'todo-text' + (t.done ? ' done' : '');
+            span.textContent = t.text + (t.priority ? ` [${t.priority}]` : '');
+            const actions = document.createElement('div');
+            actions.className = 'todo-actions';
+            const toggle = document.createElement('button');
+            toggle.className = 'toggle-btn';
+            toggle.textContent = t.done ? '↻' : '✓';
+            toggle.addEventListener('click', () => { t.done = !t.done; saveTodos(); renderTodos(); checkAllDone(); });
+            const del = document.createElement('button');
+            del.className = 'delete-btn';
+            del.textContent = '✕';
+            del.addEventListener('click', () => { todos = todos.filter(item => item !== t); saveTodos(); renderTodos(); });
+            actions.append(toggle, del);
+            li.append(span, actions);
+            todoList.appendChild(li);
+          });
+        }
+        const total = todos.length, done = todos.filter(t => t.done).length;
+        todoCount.textContent = `${total} task${total!==1?'s':''}`;
+        todoProgress.textContent = total === 0 ? '0% done' : `${Math.round((done/total)*100)}% done`;
+        document.querySelectorAll('.todo-filters button').forEach(b => b.classList.toggle('active', b.dataset.filter === filter));
+      }
+
+      function addTodo() {
+        const text = todoInput.value.trim();
+        if (!text) { showToast('Please enter a task'); return; }
+        const priority = prompt('Priority? (high/medium/low)') || 'medium';
+        todos.push({ text, done: false, priority: priority.toLowerCase() });
+        todoInput.value = '';
+        saveTodos();
+        renderTodos();
+        showToast('✅ Task added');
+      }
+
+      function checkAllDone() {
+        if (todos.length > 0 && todos.every(t => t.done)) {
+          launchConfetti();
+          showToast('🎉 All tasks completed!');
+        }
+      }
+
+      document.querySelectorAll('.todo-filters button').forEach(btn => {
+        btn.addEventListener('click', () => { filter = btn.dataset.filter; renderTodos(); });
+      });
+      document.getElementById('addTodoBtn').addEventListener('click', addTodo);
+      todoInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addTodo(); });
+
+      // ----- TOAST -----
+      function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        clearTimeout(t._hide);
+        t._hide = setTimeout(() => t.classList.remove('show'), 2800);
+      }
+
+      // ----- CONFETTI -----
+      function launchConfetti() {
+        const canvas = document.getElementById('confettiCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        const pieces = Array.from({ length: 120 }, () => ({
+          x: Math.random() * canvas.width, y: Math.random() * canvas.height - canvas.height,
+          w: 6 + Math.random() * 8, h: 4 + Math.random() * 6,
+          color: ['#f5a3c7','#fcd5e3','#fce4ec','#ffb3c6','#d47b9f'][Math.floor(Math.random()*5)],
+          vy: 2 + Math.random() * 5, vx: (Math.random() - 0.5) * 3,
+          rot: 0, rv: (Math.random() - 0.5) * 0.1
+        }));
+        let frames = 0;
+        function draw() {
+          if (frames > 160) { ctx.clearRect(0,0,canvas.width,canvas.height); return; }
+          ctx.clearRect(0,0,canvas.width,canvas.height);
+          pieces.forEach(p => {
+            p.y += p.vy; p.x += p.vx; p.rot += p.rv;
+            ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+            ctx.fillStyle = p.color; ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
+            ctx.restore();
+          });
+          frames++;
+          requestAnimationFrame(draw);
+        }
+        draw();
+        setTimeout(() => ctx.clearRect(0,0,canvas.width,canvas.height), 3000);
+      }
+
+      // ----- Init -----
+      renderTodos();
+      updateCalcDisplay();
+      checkAllDone();
+
+      window.addEventListener('resize', () => {
+        const c = document.getElementById('confettiCanvas');
+        c.width = window.innerWidth; c.height = window.innerHeight;
+      });
+
+      // ----- Random motivational quote (toast) -----
+      const quotes = ['“Code is poetry.”', '“Simplify, then add lightness.”', '“Design is not just what it looks like.”', '“Keep it simple.”'];
+      setInterval(() => {
+        if (Math.random() > 0.6) {
+          const q = quotes[Math.floor(Math.random() * quotes.length)];
+          showToast('💡 ' + q);
+        }
+      }, 14000);
+
+    })();
+  </script>
+</body>
+</html>
