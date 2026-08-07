@@ -413,11 +413,14 @@
       background: linear-gradient(135deg, #f5a3c7, #d47b9f);
       color: #fff;
       font-weight: 600;
-      grid-column: span 1;
     }
     .calc-grid .clear {
       background: rgba(255, 200, 200, 0.25);
       color: #b35a5a;
+    }
+    /* Make equals button span 2 columns */
+    .calc-grid .eq-double {
+      grid-column: span 2;
     }
 
     /* ----- To-Do ----- */
@@ -647,26 +650,30 @@
           <div class="calc-result" id="calcResult">0</div>
         </div>
         <div class="calc-grid" id="calcGrid">
+          <!-- Row 1 -->
           <button class="clear" data-action="clear">AC</button>
           <button class="op" data-action="operator">%</button>
           <button class="op" data-action="operator">÷</button>
           <button class="op" data-action="operator">×</button>
+          <!-- Row 2 -->
           <button data-action="number">7</button>
           <button data-action="number">8</button>
           <button data-action="number">9</button>
           <button class="op" data-action="operator">−</button>
+          <!-- Row 3 -->
           <button data-action="number">4</button>
           <button data-action="number">5</button>
           <button data-action="number">6</button>
           <button class="op" data-action="operator">+</button>
+          <!-- Row 4 -->
           <button data-action="number">1</button>
           <button data-action="number">2</button>
           <button data-action="number">3</button>
-          <button class="eq" data-action="calculate">=</button>
+          <!-- Row 5: Equals spans 2 columns, backspace on the right -->
+          <button class="eq eq-double" data-action="calculate">=</button>
           <button data-action="number">0</button>
           <button data-action="number">.</button>
           <button class="op" data-action="backspace">⌫</button>
-          <button class="eq" data-action="calculate">=</button>
         </div>
       </div>
     </div>
