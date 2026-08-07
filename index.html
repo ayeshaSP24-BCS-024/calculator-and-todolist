@@ -413,6 +413,7 @@
       background: linear-gradient(135deg, #f5a3c7, #d47b9f);
       color: #fff;
       font-weight: 600;
+      grid-column: span 1;
     }
     .calc-grid .clear {
       background: rgba(255, 200, 200, 0.25);
@@ -650,13 +651,20 @@
           <button class="op" data-action="operator">%</button>
           <button class="op" data-action="operator">÷</button>
           <button class="op" data-action="operator">×</button>
-          <button data-action="number">7</button><button data-action="number">8</button><button data-action="number">9</button>
+          <button data-action="number">7</button>
+          <button data-action="number">8</button>
+          <button data-action="number">9</button>
           <button class="op" data-action="operator">−</button>
-          <button data-action="number">4</button><button data-action="number">5</button><button data-action="number">6</button>
+          <button data-action="number">4</button>
+          <button data-action="number">5</button>
+          <button data-action="number">6</button>
           <button class="op" data-action="operator">+</button>
-          <button data-action="number">1</button><button data-action="number">2</button><button data-action="number">3</button>
+          <button data-action="number">1</button>
+          <button data-action="number">2</button>
+          <button data-action="number">3</button>
           <button class="eq" data-action="calculate">=</button>
-          <button data-action="number">0</button><button data-action="number">.</button>
+          <button data-action="number">0</button>
+          <button data-action="number">.</button>
           <button class="op" data-action="backspace">⌫</button>
           <button class="eq" data-action="calculate">=</button>
         </div>
@@ -918,93 +926,4 @@
         }
         const total = todos.length, done = todos.filter(t => t.done).length;
         todoCount.textContent = `${total} task${total!==1?'s':''}`;
-        todoProgress.textContent = total === 0 ? '0% done' : `${Math.round((done/total)*100)}% done`;
-        document.querySelectorAll('.todo-filters button').forEach(b => b.classList.toggle('active', b.dataset.filter === filter));
-      }
-
-      function addTodo() {
-        const text = todoInput.value.trim();
-        if (!text) { showToast('Please enter a task'); return; }
-        const priority = prompt('Priority? (high/medium/low)') || 'medium';
-        todos.push({ text, done: false, priority: priority.toLowerCase() });
-        todoInput.value = '';
-        saveTodos();
-        renderTodos();
-        showToast('✅ Task added');
-      }
-
-      function checkAllDone() {
-        if (todos.length > 0 && todos.every(t => t.done)) {
-          launchConfetti();
-          showToast('🎉 All tasks completed!');
-        }
-      }
-
-      document.querySelectorAll('.todo-filters button').forEach(btn => {
-        btn.addEventListener('click', () => { filter = btn.dataset.filter; renderTodos(); });
-      });
-      document.getElementById('addTodoBtn').addEventListener('click', addTodo);
-      todoInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addTodo(); });
-
-      // ----- TOAST -----
-      function showToast(msg) {
-        const t = document.getElementById('toast');
-        t.textContent = msg;
-        t.classList.add('show');
-        clearTimeout(t._hide);
-        t._hide = setTimeout(() => t.classList.remove('show'), 2800);
-      }
-
-      // ----- CONFETTI -----
-      function launchConfetti() {
-        const canvas = document.getElementById('confettiCanvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        const pieces = Array.from({ length: 120 }, () => ({
-          x: Math.random() * canvas.width, y: Math.random() * canvas.height - canvas.height,
-          w: 6 + Math.random() * 8, h: 4 + Math.random() * 6,
-          color: ['#f5a3c7','#fcd5e3','#fce4ec','#ffb3c6','#d47b9f'][Math.floor(Math.random()*5)],
-          vy: 2 + Math.random() * 5, vx: (Math.random() - 0.5) * 3,
-          rot: 0, rv: (Math.random() - 0.5) * 0.1
-        }));
-        let frames = 0;
-        function draw() {
-          if (frames > 160) { ctx.clearRect(0,0,canvas.width,canvas.height); return; }
-          ctx.clearRect(0,0,canvas.width,canvas.height);
-          pieces.forEach(p => {
-            p.y += p.vy; p.x += p.vx; p.rot += p.rv;
-            ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
-            ctx.fillStyle = p.color; ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
-            ctx.restore();
-          });
-          frames++;
-          requestAnimationFrame(draw);
-        }
-        draw();
-        setTimeout(() => ctx.clearRect(0,0,canvas.width,canvas.height), 3000);
-      }
-
-      // ----- Init -----
-      renderTodos();
-      updateCalcDisplay();
-      checkAllDone();
-
-      window.addEventListener('resize', () => {
-        const c = document.getElementById('confettiCanvas');
-        c.width = window.innerWidth; c.height = window.innerHeight;
-      });
-
-      // ----- Random motivational quote (toast) -----
-      const quotes = ['“Code is poetry.”', '“Simplify, then add lightness.”', '“Design is not just what it looks like.”', '“Keep it simple.”'];
-      setInterval(() => {
-        if (Math.random() > 0.6) {
-          const q = quotes[Math.floor(Math.random() * quotes.length)];
-          showToast('💡 ' + q);
-        }
-      }, 14000);
-
-    })();
-  </script>
-</body>
-</html>
+        todoProgress.textContent = total === 0 ? '0%
